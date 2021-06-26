@@ -42,15 +42,17 @@ function verifySequence(payload, publicKeys) {
     return false;
   }
   const sessionIds = [];
+  const times = [];
   for (const index in payload.signatures) {
     const signature = payload.signatures[index];
     const publicKey = publicKeys[index];
-    const sessionId = parseJwt(signature).sessionId;
     try {
       jwt.verify(signature, publicKey, {
         algorithms: "RS256",
       });
-      sessionIds.push(sessionId);
+      const sessionInfo = parseJwt(signature);
+      sessionIds.push(sessionInfo.sessionId);
+      times.push(sessionInfo.created);
     } catch (err) {
       if (err.name === "JsonWebTokenError") {
         return false;
@@ -59,7 +61,20 @@ function verifySequence(payload, publicKeys) {
     }
   }
   const areTheseComeFromSameSession = new Set(sessionIds).size === 1;
-  return areTheseComeFromSameSession;
+  const { sorted } = times.reduce(
+    (acc, currentTimestamp) => {
+      if (!acc.sorted) return acc;
+      if (!acc.lastTimestamp)
+        return { sorted: true, lastTimestamp: currentTimestamp };
+      return {
+        sorted: new Date(currentTimestamp) > new Date(acc.lastTimestamp),
+        lastTimestamp: currentTimestamp,
+      };
+    },
+    { sorted: true, lastTimestamp: null }
+  );
+
+  return areTheseComeFromSameSession && sorted;
 }
 
 module.exports = {

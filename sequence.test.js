@@ -84,3 +84,24 @@ test("Cannot hijack/reuse old session", () => {
   const result = sequence.verifySequence(hackedPayload, expectedSequence);
   expect(result).toBeFalsy();
 });
+
+test("Cannot switch order", () => {
+  const originalPayload = { ok: true };
+  const machine1SignedPayload = sequence.signSequence(originalPayload, pvKey1);
+  const newSessionStartOnMachine2 = sequence.signSequence(
+    machine1SignedPayload,
+    pvKey2
+  );
+
+  const hackedPayload = {
+    payload: newSessionStartOnMachine2,
+    signatures: [
+      newSessionStartOnMachine2.signatures[1],
+      newSessionStartOnMachine2.signatures[0],
+    ],
+  };
+
+  const expectedSequence = [pbKey2, pbKey1];
+  const result = sequence.verifySequence(hackedPayload, expectedSequence);
+  expect(result).toBeFalsy();
+});
