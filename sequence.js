@@ -9,24 +9,26 @@ function parseJwt(token) {
   return JSON.parse(text);
 }
 
+function sessionIdForPayload(payload) {
+  return payload.signatures
+    ? parseJwt(payload.signatures[0]).sessionId
+    : uuid.v4();
+}
+
 function signSequence(payload, privateKey) {
-  let sessionId;
-  if (!payload.signatures) {
-    sessionId = uuid.v4();
-  } else {
-    sessionId = parseJwt(payload.signatures[0]).sessionId;
-  }
+  const sessionId = sessionIdForPayload(payload);
   const payloadWithSignatures = payload.signatures
     ? payload
     : { payload, signatures: [] };
+  const newSignatures = [
+    ...payloadWithSignatures.signatures,
+    jwt.sign({ sessionId, created: new Date().toISOString() }, privateKey, {
+      algorithm: "RS256",
+    }),
+  ];
   return {
-    payload: payloadWithSignatures.payload,
-    signatures: [
-      ...payloadWithSignatures.signatures,
-      jwt.sign({ sessionId, created: new Date().toISOString() }, privateKey, {
-        algorithm: "RS256",
-      }),
-    ],
+    ...payloadWithSignatures,
+    signatures: newSignatures,
   };
 }
 
@@ -54,9 +56,7 @@ function verifySequence(payload, publicKeys) {
       throw err;
     }
   }
-  console.log(sessionIds);
   const isUniqueSessionId = new Set(sessionIds).size === 1;
-  console.log("isUnique:", isUniqueSessionId);
   return isUniqueSessionId;
 }
 
