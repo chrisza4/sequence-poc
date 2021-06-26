@@ -58,8 +58,8 @@ function verifySequence(payload, publicKeys) {
       throw err;
     }
   }
-  const isUniqueSessionId = new Set(sessionIds).size === 1;
-  return isUniqueSessionId;
+  const areTheseComeFromSameSession = new Set(sessionIds).size === 1;
+  return areTheseComeFromSameSession;
 }
 
 module.exports = {
