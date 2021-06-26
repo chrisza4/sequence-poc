@@ -63,3 +63,24 @@ test("Can de-verfiy wrong sequence #2", () => {
   );
   expect(result).toBeFalsy();
 });
+
+test("Cannot hijack/reuse old session", () => {
+  const originalPayload = { ok: true };
+  const machine1SignedPayload = sequence.signSequence(originalPayload, pvKey1);
+  const newSessionStartOnMachine2 = sequence.signSequence(
+    originalPayload,
+    pvKey2
+  );
+
+  const hackedPayload = {
+    payload: newSessionStartOnMachine2,
+    signatures: [
+      ...machine1SignedPayload.signatures,
+      ...newSessionStartOnMachine2.signatures,
+    ],
+  };
+
+  const expectedSequence = [pbKey1, pbKey2];
+  const result = sequence.verifySequence(hackedPayload, expectedSequence);
+  expect(result).toBeFalsy();
+});
