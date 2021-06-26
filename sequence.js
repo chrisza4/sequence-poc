@@ -10,16 +10,18 @@ function parseJwt(token) {
 }
 
 function sessionIdForPayload(payload) {
-  return payload.signatures
+  return payload.signatures[0]
     ? parseJwt(payload.signatures[0]).sessionId
     : uuid.v4();
 }
 
+function createPayloadWithSignatures(payload) {
+  return payload.signatures ? payload : { payload, signatures: [] };
+}
+
 function signSequence(payload, privateKey) {
-  const sessionId = sessionIdForPayload(payload);
-  const payloadWithSignatures = payload.signatures
-    ? payload
-    : { payload, signatures: [] };
+  const payloadWithSignatures = createPayloadWithSignatures(payload);
+  const sessionId = sessionIdForPayload(payloadWithSignatures);
   const newSignatures = [
     ...payloadWithSignatures.signatures,
     jwt.sign({ sessionId, created: new Date().toISOString() }, privateKey, {
